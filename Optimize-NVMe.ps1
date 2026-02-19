@@ -114,7 +114,7 @@ else {
         exit 1
     }
 
-    if ($nonBootPartitions.Count -eq 1 -and $nvmePartitions.Count -eq 1) {
+    if ($nonBootPartitions.Count -eq 1) {
         # Only one NVMe partition total and it's not boot
         $selectedPartition = $nonBootPartitions[0]
         Write-Host "  Only one NVMe partition found: $($selectedPartition.DriveLetter): ($($selectedPartition.Label))" -ForegroundColor White
@@ -201,11 +201,8 @@ if (-not $DryRun -and -not $Force) {
 # ── Initialize manifest ─────────────────────────────────────────────────────
 if (-not $DryRun) {
     Backup-Manifest -LogPath $LogPath
-    Initialize-Manifest -NVMeDrive $targetDrive -VolumeGuid $targetGuid
 }
-else {
-    Initialize-Manifest -NVMeDrive $targetDrive -VolumeGuid $targetGuid
-}
+Initialize-Manifest -NVMeDrive $targetDrive -VolumeGuid $targetGuid
 
 # ══════════════════════════════════════════════════════════════════════════════
 # COMPONENT 1: Pagefile  [CRITICAL -- abort on failure]
@@ -224,7 +221,7 @@ $pfLogStr = $currentPF -join '; '
 Write-Log "Current PagingFiles: $pfLogStr"
 
 # Determine current state
-$cDrivePattern = "^(C:|[?]:)\\"
+$cDrivePattern = "^C:\\"
 $nvmePattern   = "^${targetDrive}:\\"
 $onC    = @($currentPF | Where-Object { $_ -match $cDrivePattern })
 $onNVMe = @($currentPF | Where-Object { $_ -match $nvmePattern })
@@ -433,7 +430,7 @@ Write-Log "Current Search DataDirectory: $currentDataDir"
 if ($currentDataDir -and $currentDataDir.TrimEnd('\') -eq $desiredDataDir.TrimEnd('\')) {
     Write-Status "Search index already configured on ${targetDrive}:" -Level Skipped
     Add-ManifestChange -Component 'SearchIndex' -Action 'RegistryModified' `
-        -OriginalPath "$searchRegPath\DataDirectory" -OriginalValue $currentDataDir `
+        -OriginalPath $searchRegPath -OriginalValue $currentDataDir `
         -NewPath $desiredDataDir -Status 'Skipped' -Detail 'Already on NVMe'
     Update-Count -Status 'Skipped'
 }
@@ -443,7 +440,7 @@ else {
         Write-Status "Would set DataDirectory to: $desiredDataDir" -Level DryRun
         Write-Status "Would set SetupCompletedSuccessfully to 0 (force rebuild)" -Level DryRun
         Add-ManifestChange -Component 'SearchIndex' -Action 'RegistryModified' `
-            -OriginalPath "$searchRegPath\DataDirectory" -OriginalValue $currentDataDir `
+            -OriginalPath $searchRegPath -OriginalValue $currentDataDir `
             -NewPath $desiredDataDir -Status 'DryRun' -Detail 'Dry run'
         Update-Count -Status 'DryRun'
     }
@@ -473,7 +470,7 @@ else {
             Write-Status 'SetupCompletedSuccessfully set to 0 (index will rebuild after reboot)' -Level Applied
 
             Add-ManifestChange -Component 'SearchIndex' -Action 'RegistryModified' `
-                -OriginalPath "$searchRegPath\DataDirectory" -OriginalValue $currentDataDir `
+                -OriginalPath $searchRegPath -OriginalValue $currentDataDir `
                 -NewPath $desiredDataDir -Status 'Applied' -Detail 'Index will rebuild on NVMe after reboot'
             Update-Count -Status 'Applied'
 
@@ -482,7 +479,7 @@ else {
         catch {
             Write-Status "Failed to configure search index: $($_.Exception.Message)" -Level Failed
             Add-ManifestChange -Component 'SearchIndex' -Action 'RegistryModified' `
-                -OriginalPath "$searchRegPath\DataDirectory" -OriginalValue $currentDataDir `
+                -OriginalPath $searchRegPath -OriginalValue $currentDataDir `
                 -NewPath $desiredDataDir -Status 'Failed' -Detail $_.Exception.Message
             Update-Count -Status 'Failed'
         }

@@ -113,19 +113,19 @@ function Invoke-SelfElevation {
 }
 
 function Test-ExecutionPolicy {
-    $policy = Get-ExecutionPolicy -Scope CurrentUser
-    if ($policy -eq 'Restricted') {
-        $machinePolicy = Get-ExecutionPolicy -Scope LocalMachine
-        if ($machinePolicy -eq 'Restricted' -or $machinePolicy -eq 'Undefined') {
-            Write-Host ''
-            Write-Host 'ERROR: PowerShell execution policy is set to Restricted.' -ForegroundColor Red
-            Write-Host 'Scripts cannot run under this policy.' -ForegroundColor Red
-            Write-Host ''
-            Write-Host 'To fix, run this command in an elevated PowerShell prompt:' -ForegroundColor Yellow
-            Write-Host '  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' -ForegroundColor White
-            Write-Host ''
-            return $false
-        }
+    # Use the effective (most-restrictive) policy rather than checking individual scopes.
+    # This catches cases like LocalMachine=Restricted + CurrentUser=Undefined where the
+    # per-scope approach would incorrectly return $true.
+    $effectivePolicy = Get-ExecutionPolicy
+    if ($effectivePolicy -eq 'Restricted') {
+        Write-Host ''
+        Write-Host 'ERROR: PowerShell execution policy is set to Restricted.' -ForegroundColor Red
+        Write-Host 'Scripts cannot run under this policy.' -ForegroundColor Red
+        Write-Host ''
+        Write-Host 'To fix, run this command in an elevated PowerShell prompt:' -ForegroundColor Yellow
+        Write-Host '  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' -ForegroundColor White
+        Write-Host ''
+        return $false
     }
     return $true
 }

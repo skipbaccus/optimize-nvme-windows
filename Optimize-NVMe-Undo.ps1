@@ -232,16 +232,8 @@ foreach ($change in $appliedChanges) {
                         Write-Status "Restored PagingFiles: $origVal" -Level Applied
                     }
                     elseif ($change.component -eq 'SearchIndex') {
-                        # Extract value name from path (last segment after \)
-                        if ($regPath -match '\\([^\\]+)$') {
-                            $valueName = $Matches[1]
-                            $parentPath = $regPath -replace '\\[^\\]+$', ''
-                        }
-                        else {
-                            $valueName = 'DataDirectory'
-                            $parentPath = $regPath
-                        }
-                        Set-ItemProperty -Path $parentPath -Name $valueName -Value $origVal -ErrorAction Stop
+                        $valueName = 'DataDirectory'
+                        Set-ItemProperty -Path $regPath -Name $valueName -Value $origVal -ErrorAction Stop
                         Write-Status "Restored $valueName : $origVal" -Level Applied
                     }
 

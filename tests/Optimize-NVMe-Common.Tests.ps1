@@ -28,19 +28,23 @@ Describe 'Test-IsAdmin' {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 Describe 'Test-ExecutionPolicy' {
-    It 'Returns true when policy is not Restricted' {
+    It 'Returns true when effective policy is not Restricted' {
         Mock -ModuleName 'Optimize-NVMe-Common' Get-ExecutionPolicy { 'RemoteSigned' }
         $result = Test-ExecutionPolicy
         $result | Should -BeTrue
     }
 
-    It 'Returns false when CurrentUser policy is Restricted and LocalMachine is also Restricted' {
-        Mock -ModuleName 'Optimize-NVMe-Common' Get-ExecutionPolicy {
-            param($Scope)
-            if ($Scope -eq 'CurrentUser')  { return 'Restricted' }
-            if ($Scope -eq 'LocalMachine') { return 'Restricted' }
-            return 'Restricted'
-        }
+    It 'Returns false when effective policy is Restricted' {
+        Mock -ModuleName 'Optimize-NVMe-Common' Get-ExecutionPolicy { 'Restricted' }
+        Mock -ModuleName 'Optimize-NVMe-Common' Write-Host {}
+
+        $result = Test-ExecutionPolicy
+        $result | Should -BeFalse
+    }
+
+    It 'Returns false when LocalMachine is Restricted and CurrentUser is not set (effective = Restricted)' {
+        # This covers the gap where the old scope-based check would return $true incorrectly
+        Mock -ModuleName 'Optimize-NVMe-Common' Get-ExecutionPolicy { 'Restricted' }
         Mock -ModuleName 'Optimize-NVMe-Common' Write-Host {}
 
         $result = Test-ExecutionPolicy
